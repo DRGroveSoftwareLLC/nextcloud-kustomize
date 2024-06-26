@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-metrics
+  labels:
+    app.kubernetes.io/component: metrics
+spec:
+  template:
+    spec:
+      containers:
+        - name: metrics-exporter
+          image: xperimental/nextcloud-exporter
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: metrics-env
+            - secretRef:
+                name: metrics-env
+          ports:
+            - name: metrics
+              containerPort: 9205
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+

@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  labels:
+    app.kubernetes.io/component: app
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      containers:
+        - name: nextcloud
+          image: nextcloud
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: env
+            - secretRef:
+                name: env
+          volumeMounts:
+            - name: nextcloud-main
+              mountPath: /var/www/
+              subPath: root
+            - name: nextcloud-main
+              mountPath: /var/www/html
+              subPath: html
+            - name: nextcloud-main
+              mountPath: /tmp/nextcloud
+              subPath: data
+            - name: nextcloud-main
+              mountPath: /var/www/html/config
+              subPath: config
+            - name: nextcloud-main
+              mountPath: /var/www/html/custom_apps
+              subPath: custom_apps
+            - name: nextcloud-main
+              mountPath: /var/www/tmp
+              subPath: tmp
+            - name: nextcloud-main
+              mountPath: /var/www/html/themes
+              subPath: themes
+                # - name: nextcloud-config
+                #   mountPath: /var/www/html/config/autoconfig.php
+                #   subPath: autoconfig.php
+                # - name: nextcloud-config
+                #   mountPath: /var/www/html/config/s3.config.php
+                #   subPath: s3.config.php
+                # - name: nextcloud-config
+                #   mountPath: /var/www/html/config/apcu.config.php
+                #   subPath: apcu.config.php
+                # - name: nextcloud-config
+                #   mountPath: /var/www/html/config/apps.config.php
+                #   subPath: apps.config.php
+                # - name: nextcloud-config
+                #   mountPath: /var/www/html/config/redis.config.php
+                #   subPath: redis.config.php
+                # - name: nextcloud-config
+                #   mountPath: /var/www/html/config/smtp.config.php
+                #   subPath: smtp.config.php
+        - name: nginx
+          image: nginxinc/nginx-unprivileged
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              protocol: TCP
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /status.php
+              port:  8080
+              httpHeaders:
+                - name: Host
+                  value: "nextcloud.kube.home"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port:  8080
+              httpHeaders:
+                - name: Host
+                  value: "nextcloud.kube.home"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            - name: nextcloud-main
+              mountPath: /var/www/
+              subPath: root
+            - name: nextcloud-main
+              mountPath: /var/www/html
+              subPath: html
+            - name: nextcloud-main
+              mountPath: /var/www/html/data
+              subPath: data
+            - name: nextcloud-main
+              mountPath: /var/www/html/config
+              subPath: config
+            - name: nextcloud-main
+              mountPath: /var/www/html/custom_apps
+              subPath: custom_apps
+            - name: nextcloud-main
+              mountPath: /var/www/tmp
+              subPath: tmp
+            - name: nextcloud-main
+              mountPath: /var/www/html/themes
+              subPath: themes
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/
+        - name: nextcloud-cron
+          image: nextcloud
+          imagePullPolicy: IfNotPresent
+          command:
+            - /cron.sh
+          envFrom:
+            - configMapRef:
+                name: env
+            - secretRef:
+                name: env
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsGroup: 33
+            runAsNonRoot: true
+            runAsUser: 33
+          volumeMounts:
+            - name: nextcloud-main
+              mountPath: /var/www/
+              subPath: root
+            - name: nextcloud-main
+              mountPath: /var/www/html
+              subPath: html
+            - name: nextcloud-main
+              mountPath: /var/www/html/data
+              subPath: data
+            - name: nextcloud-main
+              mountPath: /var/www/html/config
+              subPath: config
+            - name: nextcloud-main
+              mountPath: /var/www/html/custom_apps
+              subPath: custom_apps
+            - name: nextcloud-main
+              mountPath: /var/www/tmp
+              subPath: tmp
+            - name: nextcloud-main
+              mountPath: /var/www/html/themes
+              subPath: themes
+            # - name: nextcloud-config
+            #   mountPath: /var/www/html/config/autoconfig.php
+            #   subPath: autoconfig.php
+            # - name: nextcloud-config
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+      volumes:
+        - name: nextcloud-main
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nextcloud-config
+          configMap:
+            name: nextcloud-config
+        - name: nginx-config
+          configMap:
+            name: nextcloud-nginx
+      securityContext:
+        runAsGroup: 33
+        runAsNonRoot: true
+        runAsUser: 33
+        fsGroup: 33

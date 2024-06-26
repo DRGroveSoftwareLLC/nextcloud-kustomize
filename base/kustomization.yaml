@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app.kubernetes.io/component: app
+  app.kubernetes.io/name: nextcloud
+resources:
+  - deployment.yaml
+  - service.yaml
+configMapGenerator:
+  - name: nextcloud-config
+    files:
+      - autoconfig.php=files/autoconfig.php
+  #     - apcu.config.php=files/apcu.config.php
+  #     - apps.config.php=files/apps.config.php
+  #     - redis.config.php=files/redis.config.php
+  #     - s3.config.php=files/s3.config.php
+  #     - smtp.config.php=files/smtp.config.php
+  - name: nextcloud-nginx
+    files:
+      - default.conf=files/nginx.conf
+  - name: env
+    literals:
+      - NEXTCLOUD_DATA_DIR="/tmp/nextcloud/data"
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.kube.home
+      - POSTGRES_HOST=postgres.postgres.svc
+      - POSTGRES_USER=nextcloud
+images:
+  - name: nextcloud
+    newTag: 29.0.0-fpm@sha256:96299f0933835dae1c50f474d2e3d047d62886a9be0c0cb5a748d8d9af2517ac
+  - name: nginxinc/nginx-unprivileged
+    newTag: 1.26.0-bookworm@sha256:9f8e66e89d75e36a82b982f84017d70180417e0c201e4cd6dbb0e08c49af6e18

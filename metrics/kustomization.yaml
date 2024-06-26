@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app.kubernetes.io/component: metrics
+  app.kubernetes.io/name: nextcloud
+resources:
+  - deployment.yaml
+  - service.yaml
+configMapGenerator:
+  - name: metrics-env
+    literals:
+      - NEXTCLOUD_TIMEOUT=5s
+      - NEXTCLOUD_TLS_SKIP_VERIFY=false
+images:
+  - name: xperimental/nextcloud-exporter
+    newTag: 0.6.2
